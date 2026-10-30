@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo de Produtos • Arquitetura em Camadas</title>
+    <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+<div class="container">
+    <header class="header">
+        <div>
+            <span class="brand-badge">Arquitetura em Camadas</span>
+            <h1>Gerenciamento de Produtos</h1>
+            <p class="subtitle">Controle de catálogo validado por Value Objects e Domain Services</p>
+        </div>
+        <div class="counter-pill">Total no catálogo: <strong id="total-produtos">0</strong></div>
+    </header>
+    <div id="alerta-slot" class="alert hidden"></div>
+    <section class="card" id="card-formulario">
+        <h2 class="card-title" id="titulo-form">Novo Produto</h2>
+        <form action="/produtos/salvar" method="post" class="form-grid">
+            <input type="hidden" id="campo-id" name="id" value="">
+            <div>
+                <label for="nome">Nome do Produto</label>
+                <input id="nome" name="nome" type="text" value="" placeholder="Ex: Monitor Ultrawide 34&quot;">
+            </div>
+            <div>
+                <label for="preco">Preço Unitário (R$)</label>
+                <input id="preco" name="preco" type="number" step="0.01" value="" placeholder="Ex: 2499.90">
+            </div>
+            <button type="submit" class="btn btn-primary" id="botao-submit">Cadastrar Produto</button>
+            <button type="button" class="btn btn-secondary hidden" id="botao-cancelar">Cancelar</button>
+        </form>
+    </section>
+    <section class="card">
+        <h2 class="card-title">Produtos Cadastrados</h2>
+        <table>
+            <thead>
+            <tr><th>ID</th><th>Produto</th><th>Preço Unitário</th><th class="th-actions">Ações</th></tr>
+            </thead>
+            <tbody id="tabela-produtos">
+            <tr><td colspan="4" class="empty">Nenhum produto cadastrado no momento.</td></tr>
+            </tbody>
+        </table>
+    </section>
+</div>
+<script>
+    const ESTADO_DA_PAGINA = { produtos: [], emEdicao: null, erro: null, sucesso: null };
+    localStorage.setItem('produtos', JSON.stringify(ESTADO_DA_PAGINA.produtos));
+    document.getElementById('total-produtos').textContent = ESTADO_DA_PAGINA.produtos.length;
+
+    function preencherFormularioParaEdicao(produtoSelecionado) {
+        document.getElementById('titulo-form').textContent = 'Editar Produto #' + produtoSelecionado.id;
+        document.getElementById('campo-id').value = produtoSelecionado.id;
+        document.getElementById('nome').value = produtoSelecionado.nome;
+        document.getElementById('preco').value = produtoSelecionado.preco;
+        document.getElementById('botao-submit').textContent = 'Salvar Alterações';
+        document.getElementById('botao-cancelar').classList.remove('hidden');
+        document.getElementById('nome').focus();
+    }
+
+    document.getElementById('botao-cancelar').addEventListener('click', () => {
+        document.getElementById('titulo-form').textContent = 'Novo Produto';
+        document.getElementById('campo-id').value = '';
+        document.getElementById('nome').value = '';
+        document.getElementById('preco').value = '';
+        document.getElementById('botao-submit').textContent = 'Cadastrar Produto';
+        document.getElementById('botao-cancelar').classList.add('hidden');
+    });
+
+    const elementoAlerta = document.getElementById('alerta-slot');
+    if (ESTADO_DA_PAGINA.erro || ESTADO_DA_PAGINA.sucesso) {
+        elementoAlerta.textContent = ESTADO_DA_PAGINA.erro || ESTADO_DA_PAGINA.sucesso;
+        elementoAlerta.className = 'alert ' + (ESTADO_DA_PAGINA.erro ? 'alert-error' : 'alert-success');
+    }
+    if (ESTADO_DA_PAGINA.emEdicao) {
+        preencherFormularioParaEdicao(ESTADO_DA_PAGINA.emEdicao);
+    }
+
+    const corpoTabelaProdutos = document.getElementById('tabela-produtos');
+    if (ESTADO_DA_PAGINA.produtos.length > 0) {
+        corpoTabelaProdutos.innerHTML = '';
+        ESTADO_DA_PAGINA.produtos.forEach(produtoCadastrado => {
+            const linhaTabela = document.createElement('tr');
+            const precoFormatadoEmReais = Number(produtoCadastrado.preco).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            linhaTabela.innerHTML = `<td><span class="id-badge">#${produtoCadastrado.id}</span></td><td><strong class="nome-celula"></strong></td><td><span class="price-badge">R$ ${precoFormatadoEmReais}</span></td><td class="actions"><button type="button" class="btn-edit">Editar</button><form action="/produtos/remover" method="post" class="inline-form"><input type="hidden" name="id" value="${produtoCadastrado.id}"><button type="submit" class="btn-delete">Remover</button></form></td>`;
+            linhaTabela.querySelector('.nome-celula').textContent = produtoCadastrado.nome;
+            linhaTabela.querySelector('.btn-edit').addEventListener('click', () => preencherFormularioParaEdicao(produtoCadastrado));
+            corpoTabelaProdutos.appendChild(linhaTabela);
+        });
+    }
+</script>
+</body>
+</html>
